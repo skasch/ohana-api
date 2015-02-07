@@ -1,208 +1,166 @@
-# A Virtual Machine for Ohana API Development
+[![Stories in Ready](https://badge.waffle.io/codeforamerica/ohana-api-admin.png?label=ready)](https://waffle.io/codeforamerica/ohana-api-admin)
+# Ohana API Admin
 
-## Introduction
-This project automates the setup of a development environment for working on Ohana API. Use this virtual machine to work on a pull request with everything ready to hack and run the test suites.
+This is an admin interface for the data that is exposed by the [Ohana API](http://github.com/codeforamerica/ohana-api/). It allows organization members to sign up with their organization email address, and allows them to update the locations that belong to their organization.
 
-## Windows installation
-* [Follow the Windows Installation Guide wiki page](https://github.com/codeforamerica/ohana-api-dev-box/wiki/Ohana-API-virtual-machine-installation-guide-for-Windows).
+Once a user is signed up, they can be given "master admin" status
+by setting their "role" field to "admin". This is done by editing the role field directly in the MongoDB interface (via Mongolab if you are deploying to Heroku using this app's default configuration). This will allow the admin to access and update all the data.
 
-## Mac OSX installation
-* Follow the directions below...
+## Stack Overview
 
-### Requirements
-* [VirtualBox](https://www.virtualbox.org)
+* Ruby version 2.0.0
+* Rails version 3.2.16
+* MongoDB with the Mongoid ORM
+* Testing Frameworks: RSpec, Factory Girl, Capybara
 
-* [Vagrant 1.1+](http://vagrantup.com) (not a Ruby gem)
+## Installation
+Please note that the instructions below have only been tested on OS X. If you are running another operating system and run into any issues, feel free to update this README, or open an issue if you are unable to resolve installation issues.
 
-### How To Build The Virtual Machine
-1. **Install VirtualBox for OS X**, which can be [downloaded](https://www.virtualbox.org/wiki/Downloads) from the VirtualBox site.
+###Prerequisites
 
-2. **Install Vagrant**, which can be [downloaded](http://www.vagrantup.com/downloads.html) from the Vagrant site, which also provides [step-by-step installation instructions](http://docs.vagrantup.com/v2/getting-started/index.html).
+#### Git, Ruby 2.0.0+, Rails 3.2.16+ (+ Homebrew on OS X)
+**OS X**: [Set up a dev environment on OS X with Homebrew, Git, RVM, Ruby, and Rails](http://www.moncefbelyamani.com/how-to-install-xcode-homebrew-git-rvm-ruby-on-mac/)
 
-3. **Build the VM**
+**Windows**: Try [RailsInstaller](http://railsinstaller.org), along with some of these [tutorials](https://www.google.com/search?q=install+rails+on+windows) if you get stuck.
 
-  In the directory you want to work in, enter the following:
 
-  ```
-  $ git clone https://github.com/codeforamerica/ohana-api-dev-box
-  $ cd ohana-api-dev-box
-  $ vagrant up
-  ```
+#### MongoDB
+**OS X**
 
-If the base box is not present, `vagrant up` fetches it first.
+On OS X, the easiest way to install MongoDB (or almost any development tool) is with Homebrew:
 
-After the installation has finished (it can take several minutes), you can access the virtual machine with the following command:
+    brew update
+    brew install mongodb
 
-    host $ vagrant ssh
-    Welcome to Ubuntu 12.04 LTS (GNU/Linux 3.2.0-23-generic-pae i686)
-    ...
-    vagrant@ohana-api-dev-box:~$
+Follow the Homebrew instructions for configuring MongoDB and starting it automatically every time you restart your computer. Otherwise, you can launch MongoDB manually in a separate Terminal tab or window with this command:
 
-`host $` refers to the command prompt on your computer's OS, as opposed to the prompt in the virtual machine.
+    mongod
 
-Port 8080 in the host computer is forwarded to port 8080 in the virtual machine. Thus, applications running in the virtual machine can be accessed via localhost:8080 in the host computer.
+MongoDB installation instructions using MacPorts are available on the [wiki](https://github.com/codeforamerica/ohana-api-admin/wiki/Installation).
 
-### What's In The Box
-* Git
+**Other**
 
-* RVM
+See the Downloads page on mongodb.org for steps to install on other systems: [http://www.mongodb.org/downloads](http://www.mongodb.org/downloads)
 
-* Ruby 2.1.5 (binary RVM install)
+### Clone the app on your local machine.
 
-* Bundler
+From the Terminal, navigate to the directory into which you'd like to create a copy of the Ohana API Admin source code. For instance, on OS X `cd ~` will place you in your home directory. Next download this repository into your working directory with:
 
-* Postgres
+    git clone git://github.com/codeforamerica/ohana-api-admin.git
+    cd ohana-api-admin
 
-* System dependencies for nokogiri and pg
+### Install the dependencies and run the setup scripts:
 
-* Databases and users needed to run the test suite
+    script/bootstrap
 
-* Node.js for the asset pipeline
+If you get a `permission denied` message, set the correct permissions:
 
-* PhantomJS
+    chmod -R 755 script
 
-### Recommended Workflow
-The recommended workflow is
+then run `script/bootstrap` again.
 
-* edit in the host computer (i.e. your physical computer)
+### Install the Ohana API and run it locally
+In order to be able to test the admin interface, you need data. Since this app gets its data from the Ohana API, you need to [install the Ohana API](https://github.com/codeforamerica/ohana-api#installation) first, which comes with a sample dataset.
 
-and
+### Configure Ohana API Admin to point to your local Ohana API
+In the Ohana API Admin, go to `config/application.yml` and add an entry like this to define your API endpoint:
 
-* test within the virtual machine.
+    OHANA_API_ENDPOINT: http://localhost:8080/api
 
-This workflow is convenient because in the host computer you normally have your editor of choice fine-tuned, Git configured, and SSH keys in place.
+### Allow the Admin app to write to the Ohana API
+The Ohana API currently only allows one app to write to the API. It determines if an HTTP request is authorized to make a PUT, POST, or DELETE request based on the `X-Api-Token` header that it sends. Normally, you would obtain an API Token by signing up on the Ohana API site and registering an application. For testing purposes, you can skip that step and just define your own token (a series of alphanumeric characters, such as `as56hsd789sdf`).
 
-### Set up the project
-Clone your ohana-api fork into the ohana-api-dev-box directory on the host computer:
+In the Ohana API, make sure `config/application.yml` includes an entry like this that defines the token used by the admin app:
 
-    host $ ls
-    LICENSE.md  README.md  Vagrantfile  bootstrap.sh
-    host $ git clone https://github.com/<your GitHub username>/ohana-api.git
+    ADMIN_APP_TOKEN: your_token
 
-#### Configure the database
+In the Admin app, go to `config/application.yml` and add an entry like this with the same token as above:
 
-In the `ohana-api` directory, you will find a file within the `config` directory called `database.vagrant.yml`. On the host machine, rename it to `database.yml`, overwriting the `database.yml` file that already exists.
+    OHANA_API_TOKEN: same_token_as_above
 
-#### Set up the environment variables
+### Run the admin app
+Start the app locally:
 
-Inside the `config` folder, you will find a file named `application.example.yml`. Copy its contents to a new file in the same directory called `application.yml`.
+    rails s
 
-#### Bootstrap the ohana-api project in the virtual machine:
+And visit it in a web browser at:
 
-    host $ vagrant ssh
-    vagrant@ohana-api-dev-box:~$ cd /vagrant/ohana-api
-    vagrant@ohana-api-dev-box:/vagrant/ohana-api$ script/bootstrap
+    localhost:3000
 
-This step can take several minutes, mostly because it takes a while to install all the gems.
+### Sign in
+The bootstrap script you ran earlier created three users for you that you can sign in with. You can see the username and password for each user in [db/seeds.rb](https://github.com/codeforamerica/ohana-api-admin/blob/master/db/seeds.rb). When you sign in with the first two, you'll have access to locations whose email or website domains match the domain name of the user's email address. The locations come from the [sample data](https://github.com/codeforamerica/ohana-api/blob/master/data/sample_data.json) provided by the Ohana API.
 
-Verify that you can launch the app:
+The third user is there to let you try the interface as a master admin, but you can set any of the three users as an admin by setting the "role" field to "admin". To do that, you need direct access to your Mongo database. The easiest way to view and update Mongo data is with a GUI like [one of these](http://docs.mongodb.org/ecosystem/tools/administration-interfaces/).
 
-    vagrant@ohana-api-dev-box:/vagrant/ohana-api$ rails s -p 8080
+### Test the app
+Run tests locally with this simple command:
 
-You should now be able to access the app on the host machine at
-http://localhost:8080
+    rspec
 
-#### Verify the app is returning JSON
-To see all locations, 30 per page:
+For faster tests (and many other rails commands, like rake):
 
-    http://localhost:8080/api/locations
+    gem install zeus
+    zeus start #in a separate Terminal window or tab
+    zeus rspec spec
 
-Search for locations by keyword and/or location:
+To see the actual tests, browse through the [spec](https://github.com/codeforamerica/ohana-api-admin/tree/master/spec) directory.
 
-    http://localhost:8080/api/search?keyword=food
-    http://localhost:8080/api/search?keyword=counseling&location=94403
-    http://localhost:8080/api/search?location=redwood city, ca
+The tests will take around 3 to 5 minutes to run. Note that a browser window will open during the integration tests as some of them use the Selenium web driver.
 
-Search for locations by languages spoken:
+### Deploying to Heroku
+First, you need to [deploy the Ohana API to Heroku](https://github.com/codeforamerica/ohana-api/wiki/How-to-deploy-the-Ohana-API-to-your-Heroku-account). Then, create a new app on Heroku for the Admin site:
 
-    http://localhost:8080/api/search?language=spanish
+    heroku apps:create your_app_name
 
-#### Test the app
+Run the Heroku deployment script:
 
-Run tests in the virtual machine with this simple command:
+    script/setup_heroku -a your_app_name -o your_api_endpoint
 
-    vagrant@ohana-api-dev-box:/vagrant/ohana-api$ script/test
+`your_api_endpoint` is the full URL to your API endpoint. For example: `http://ohanapi.herokuapp.com/api`
 
-## Virtual Machine Management
+Set `OHANA_API_TOKEN` to the same value as `ADMIN_APP_TOKEN` in your instance of Ohana API:
 
-When done just log out with `^D` (or `logout`) and suspend the virtual machine
+    heroku config:set OHANA_API_TOKEN=value_of_ADMIN_APP_TOKEN
 
-    host $ vagrant suspend
+Visit your site:
 
-then, resume to hack again
+    heroku open -a your_app_name
 
-    host $ vagrant resume
+## Contributing
 
-Run
+In the spirit of open source software, **everyone** is encouraged to help improve this project.
 
-    host $ vagrant halt
+Here are some ways *you* can contribute:
 
-to shutdown the virtual machine, and
+* by using alpha, beta, and prerelease versions
+* by reporting bugs
+* by suggesting new features
+* by suggesting labels for our issues
+* by writing or editing documentation
+* by writing specifications
+* by writing code (**no patch is too small**: fix typos, add comments, clean up
+  inconsistent whitespace)
+* by refactoring code
+* by closing [issues](https://github.com/codeforamerica/ohana-api-admin/issues)
+* by reviewing patches
+* [financially](https://secure.codeforamerica.org/page/contribute)
 
-    host $ vagrant up
+## Submitting an Issue
+We use the [GitHub issue tracker](https://github.com/codeforamerica/ohana-api-admin/issues) to track bugs and features. Before submitting a bug report or feature request, check to make sure it hasn't already been submitted. When submitting a bug report, please include a [Gist](https://gist.github.com/) that includes a stack trace and any details that may be necessary to reproduce the bug, including your gem version, Ruby version, and operating system. Ideally, a bug report should include a pull request with failing specs.
 
-to boot it again.
+## Submitting a Pull Request
+1. [Fork the repository.][fork]
+2. [Create a topic branch.][branch]
+3. Add specs for your unimplemented feature or bug fix.
+4. Run `rspec`. If your specs pass, return to step 3. In the spirit of Test-Driven Development, you want to write a failing test first, then implement the feature or bug fix to make the test pass.
+5. Implement your feature or bug fix.
+6. Run `rspec`. If your specs fail, return to step 5.
+7. Add, commit, and push your changes.
+8. [Submit a pull request.][pr]
 
-You can find out the state of a virtual machine anytime by invoking
+[fork]: http://help.github.com/fork-a-repo/
+[branch]: http://learn.github.com/p/branching.html
+[pr]: http://help.github.com/send-pull-requests/
 
-    host $ vagrant status
-
-Finally, to completely wipe the virtual machine from the disk **destroying all its contents**:
-
-    host $ vagrant destroy # DANGER: all is gone
-
-Please check the [Vagrant documentation](http://docs.vagrantup.com/v2/) for more information on Vagrant.
-
-## Faster test suites
-
-The default mechanism for sharing folders is convenient and works out of the
-box in all Vagrant versions, but there are a couple of alternatives that are
-more performant.
-
-### rsync
-
-Vagrant implements a sharing mechanism based on rsync that dramatically
-improves read/write because files are actually stored in the guest.
-
-1. In a text editor, open `Vagrantfile`, which can be found in the root of
-the `ohana-api-dev-box` directory you cloned earlier.
-
-2. Uncomment line 28 and save the file.
-
-#### Restart the virtual machine
-1. If you're already logged in to the VM, stop the Rails server if it's
-running by pressing ctrl-c. Then press ctrl-d to log out.
-
-2. Halt and launch the VM with rsync
- ```
- vagrant halt
- vagrant up
- vagrant rsync-auto
- ```
-
-3. Log in to the VM in a new Shell window or tab:
- ```
- vagrant ssh
- ```
-
-4. Launch Ohana API
- ```
- vagrant@ohana-api-dev-box:~$ cd /vagrant/ohana-api
- vagrant@ohana-api-dev-box:/vagrant/ohana-api$ rails s -p 8080
- ```
-
-### NFS
-
-If you're using Mac OS X or Linux you can increase the speed of the test suite with Vagrant's NFS synced folders.
-
-With an NFS server installed (already installed on Mac OS X), uncomment line
-28 of the Vagrantfile (which can be found in the root  of the
-`ohana-api-dev-box` directory you cloned earlier) and replace `type: 'rsync'`
-with `type: 'nfs'`.
-
-You'll also need to configure a private network using either DHCP or a static IP.
-Please read the Vagrant documentation on [private networks](http://docs.vagrantup.com/v2/networking/private_network.html) and [NFS synced folders](http://docs.vagrantup.com/v2/synced-folders/nfs.html) for more information.
-
-## License
-
-Copyright (c) 2014–<i>ω</i> Code for America. See [LICENSE](https://github.com/codeforamerica/ohana-api-dev-box/blob/master/LICENSE.md) for details.
+## Copyright
+Copyright (c) 2013 Code for America. See [LICENSE](https://github.com/codeforamerica/ohana-api-admin/blob/master/LICENSE.md) for details.
